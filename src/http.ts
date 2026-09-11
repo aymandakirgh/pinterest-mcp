@@ -11,6 +11,7 @@
 import express, { type Request, type Response } from "express";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { loadConfig } from "./config.js";
+import { createOAuthRouter } from "./oauth-web.js";
 import { SERVER_NAME, SERVER_VERSION, buildServer } from "./server.js";
 
 const config = loadConfig();
@@ -42,7 +43,15 @@ app.get("/health", (_req: Request, res: Response) => {
     version: SERVER_VERSION,
     // Never echo the token itself, only whether a fallback exists.
     default_token_configured: Boolean(config.accessToken),
+    web_login_available: Boolean(config.appId && config.appSecret),
   });
+});
+
+// Browser flow for minting a token: GET /auth
+app.use(createOAuthRouter(config));
+
+app.get("/", (_req: Request, res: Response) => {
+  res.redirect(config.appId && config.appSecret ? "/auth" : "/health");
 });
 
 app.post("/mcp", async (req: Request, res: Response) => {

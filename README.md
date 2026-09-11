@@ -44,6 +44,25 @@ npm test
 
 ## Getting a token
 
+### In the browser (easiest)
+
+Run the HTTP transport with your app credentials set and open **`/auth`**:
+
+```bash
+PINTEREST_APP_ID=... PINTEREST_APP_SECRET=... npm run start:http
+# then open http://localhost:3000/auth
+```
+
+Click through, approve on Pinterest, and the callback page hands you the access token, the refresh token and the exact `claude mcp add` command to paste. Nothing is stored server-side — the tokens are shown once and never written to disk.
+
+Register `<your-host>/auth/callback` as a redirect URI on the Pinterest app first; it must match character for character.
+
+> Pinterest is the only sign-in option for its API — there is no "connect with Google" for third-party apps. If your Pinterest account itself uses Google or Facebook, pick that on Pinterest's own consent screen.
+
+### From the tools
+
+If you would rather stay in the assistant:
+
 1. Create an app at [developers.pinterest.com/apps](https://developers.pinterest.com/apps/) and note the app id, secret and a registered redirect URI.
 2. Set `PINTEREST_APP_ID`, `PINTEREST_APP_SECRET` and `PINTEREST_REDIRECT_URI`.
 3. Ask the assistant to call `pinterest_build_oauth_url`, open the URL, approve.
@@ -139,6 +158,7 @@ The image is a two-stage build running as the unprivileged `node` user.
 | `PINTEREST_API_BASE_URL` | production v5 | Override the API root outright. |
 | `PINTEREST_MAX_RETRIES` | `3` | Attempts for retryable failures (429 / 5xx). |
 | `PORT` | `3000` | HTTP transport only. |
+| `PUBLIC_BASE_URL` | derived from the request | Base URL used to build the `/auth/callback` redirect when `PINTEREST_REDIRECT_URI` is unset. |
 
 The server starts whether or not a token is present, so an assistant can always reach the OAuth tools to obtain one.
 
