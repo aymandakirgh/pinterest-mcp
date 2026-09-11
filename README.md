@@ -91,6 +91,14 @@ Add to `claude_desktop_config.json`:
 
 ## Run it hosted
 
+A live instance runs on Railway:
+
+```
+https://pinterest-mcp-http-production.up.railway.app/mcp
+```
+
+It holds **no credentials of its own** — every caller supplies their own Pinterest token per request, and `GET /health` reports `default_token_configured: false` to prove it. Treat it as a convenience for trying the server out; run your own instance for anything that matters.
+
 The HTTP transport turns the same server into a remote MCP endpoint:
 
 ```bash
