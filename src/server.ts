@@ -9,7 +9,7 @@ import { registerRawTool } from "./tools/raw.js";
 import { registerSearchTools } from "./tools/search.js";
 
 export const SERVER_NAME = "pinterest-mcp";
-export const SERVER_VERSION = "0.2.0";
+export const SERVER_VERSION = "0.3.0";
 
 const INSTRUCTIONS = `Tools for the Pinterest API v5 on behalf of one authenticated account.
 

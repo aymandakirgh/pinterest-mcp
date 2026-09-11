@@ -7,6 +7,10 @@ export interface ServerConfig {
   redirectUri: string | undefined;
   baseUrl: string;
   maxRetries: number;
+  /** Key that seals the tokens the MCP authorization server issues. */
+  authSecret: string | undefined;
+  /** Absolute origin of this deployment, used to build OAuth URLs. */
+  publicBaseUrl: string | undefined;
 }
 
 /**
@@ -28,6 +32,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     redirectUri: nonEmpty(env.PINTEREST_REDIRECT_URI),
     baseUrl,
     maxRetries: Number.isFinite(retries) && retries > 0 ? Math.floor(retries) : 3,
+    authSecret: nonEmpty(env.MCP_AUTH_SECRET),
+    publicBaseUrl: nonEmpty(env.PUBLIC_BASE_URL)?.replace(/\/+$/, ""),
   };
 }
 

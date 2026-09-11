@@ -109,6 +109,40 @@ Add to `claude_desktop_config.json`:
 }
 ```
 
+## Let anyone connect their own account (OAuth)
+
+Run with app credentials and the server becomes a **remote MCP server with OAuth 2.1**. A user adds the URL in their client, clicks Connect, approves on Pinterest, and is done — no token ever passes through their hands.
+
+```bash
+PINTEREST_APP_ID=... PINTEREST_APP_SECRET=... \
+MCP_AUTH_SECRET=$(openssl rand -hex 32) \
+PUBLIC_BASE_URL=https://your-host \
+npm run start:http
+```
+
+Register `https://your-host/oauth/pinterest/callback` as a redirect URI on the Pinterest app, then point a client at `https://your-host/mcp`.
+
+The client never receives a Pinterest token. It gets one minted here, with the Pinterest credential sealed inside it, so a single deployment can serve many people's accounts without any of them seeing another's.
+
+<details>
+<summary>What the server implements</summary>
+
+| Endpoint | Purpose |
+| --- | --- |
+| `/.well-known/oauth-protected-resource` | RFC 9728 — names the authorization server |
+| `/.well-known/oauth-authorization-server` | RFC 8414 — endpoints, scopes, PKCE support |
+| `/register` | RFC 7591 dynamic client registration |
+| `/authorize` | Starts the flow; hands off to Pinterest |
+| `/oauth/pinterest/callback` | Where Pinterest returns |
+| `/token` | `authorization_code` and `refresh_token` grants |
+
+PKCE (S256) is mandatory, `plain` is refused. Authorization codes are single-use and live ten minutes. The `iss` parameter is returned per RFC 9207 so clients can detect an authorization-server mix-up. An unauthenticated `POST /mcp` answers `401` with a `WWW-Authenticate` header pointing at the resource metadata, which is what triggers a client to begin the flow.
+
+Every token — codes, access, refresh, even client ids — is an AES-256-GCM envelope carrying its own payload and expiry, so there is no session store or database. The tradeoff: revocation means rotating `MCP_AUTH_SECRET`, which invalidates everything at once.
+</details>
+
+> **This needs Pinterest Standard access.** Under Trial access, Pinterest only authorizes the app owner's own account, so the flow works but nobody else can complete it. Standard access requires an approved Trial app, compliance with the Developer Guidelines, and a video of the app using the API — see [access tiers](https://developers.pinterest.com/docs/getting-started/access-tiers/).
+
 ## Run it hosted
 
 A live instance runs on Railway:
@@ -158,7 +192,8 @@ The image is a two-stage build running as the unprivileged `node` user.
 | `PINTEREST_API_BASE_URL` | production v5 | Override the API root outright. |
 | `PINTEREST_MAX_RETRIES` | `3` | Attempts for retryable failures (429 / 5xx). |
 | `PORT` | `3000` | HTTP transport only. |
-| `PUBLIC_BASE_URL` | derived from the request | Base URL used to build the `/auth/callback` redirect when `PINTEREST_REDIRECT_URI` is unset. |
+| `PUBLIC_BASE_URL` | derived from the request | Absolute origin of the deployment. Used for OAuth metadata and callback URLs; set it behind a proxy. |
+| `MCP_AUTH_SECRET` | random per boot | Seals the OAuth tokens this server issues. Required for a hosted deployment — without it, issued tokens die on restart. |
 
 The server starts whether or not a token is present, so an assistant can always reach the OAuth tools to obtain one.
 
