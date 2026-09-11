@@ -100,24 +100,45 @@ function copyText(id, btn) {
 export function createOAuthRouter(config: ServerConfig): Router {
   const router = Router();
 
-  const missingCredentials = (res: Response): void => {
+  const missingCredentials = (req: Request, res: Response): void => {
+    // Show the real callback URL for this deployment — it has to be pasted into
+    // Pinterest verbatim, so a placeholder here just creates a failed exchange later.
+    const callback = resolveRedirectUri(req, config);
     res.status(503).send(
       page(
         "Setup required",
         `<h1>Web login is not configured</h1>
-         <p class="sub">This deployment has no Pinterest app credentials, so it cannot run the OAuth flow.</p>
-         <div class="card"><h2>Set these and redeploy</h2>
-         <pre>PINTEREST_APP_ID=...
-PINTEREST_APP_SECRET=...</pre></div>
-         <div class="card"><h2>Then register this redirect URI on the app</h2>
-         <pre>&lt;this host&gt;/auth/callback</pre>
-         <p class="warn">Create an app at developers.pinterest.com/apps. The redirect URI must match character for character.</p></div>`,
+         <p class="sub">This deployment has no Pinterest app credentials, so it cannot run the OAuth flow yet.</p>
+
+         <div class="card"><h2>1 &middot; Create the app</h2>
+           <p>Pinterest requires a <strong>business account</strong>, and every app goes through a
+           short review before it hands over credentials — requests are reviewed each business day,
+           so expect a wait rather than instant access.</p>
+           <p style="margin-bottom:0"><a class="btn" href="https://developers.pinterest.com/apps/" target="_blank" rel="noopener">Open Pinterest&nbsp;&rarr;&nbsp;My apps</a></p>
+         </div>
+
+         <div class="card"><h2>2 &middot; Register this exact redirect URI</h2>
+           <p>Manage &rarr; Configure &rarr; Redirect URIs. It must match character for character.</p>
+           <pre id="cb">${escapeHtml(callback)}</pre>
+           <button onclick="copyText('cb', this)">Copy redirect URI</button>
+         </div>
+
+         <div class="card"><h2>3 &middot; Set the credentials here</h2>
+           <pre>PINTEREST_APP_ID=...
+PINTEREST_APP_SECRET=...</pre>
+           <p class="warn">Once approved, the app id and secret appear on the My apps page. After
+           setting them the service restarts and this page becomes the login button.</p>
+         </div>
+
+         <p class="warn">Prefer not to put the secret on a public host? Run the same flow locally:
+         <code>PINTEREST_APP_ID=... PINTEREST_APP_SECRET=... npm run start:http</code>, then open
+         <code>localhost:3000/auth</code> and register that callback instead.</p>`,
       ),
     );
   };
 
   router.get("/auth/login", (req: Request, res: Response) => {
-    if (!config.appId || !config.appSecret) return missingCredentials(res);
+    if (!config.appId || !config.appSecret) return missingCredentials(req, res);
 
     const requested = typeof req.query.scopes === "string" ? req.query.scopes.split(",") : undefined;
     const scopes = (requested ?? DEFAULT_SCOPES).filter((scope) =>
@@ -136,7 +157,7 @@ PINTEREST_APP_SECRET=...</pre></div>
 
   /** A friendly landing page, so the bare host is not a dead end. */
   router.get("/auth", (req: Request, res: Response) => {
-    if (!config.appId || !config.appSecret) return missingCredentials(res);
+    if (!config.appId || !config.appSecret) return missingCredentials(req, res);
     res.send(
       page(
         "Connect Pinterest",
@@ -156,7 +177,7 @@ PINTEREST_APP_SECRET=...</pre></div>
   });
 
   router.get("/auth/callback", async (req: Request, res: Response) => {
-    if (!config.appId || !config.appSecret) return missingCredentials(res);
+    if (!config.appId || !config.appSecret) return missingCredentials(req, res);
 
     const { code, state, error, error_description: errorDescription } = req.query;
 
