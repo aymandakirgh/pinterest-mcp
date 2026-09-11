@@ -1,0 +1,65 @@
+name: Release
+
+# Publishes to npm when a GitHub release is created, or on demand.
+#
+# Authentication is npm trusted publishing (OIDC): GitHub mints a short-lived
+# identity token and npm verifies it came from this workflow in this repo. There
+# is no npm token to store and no 2FA prompt to answer, which matters when the
+# account's second factor is a passkey that cannot be scripted.
+#
+# One-time setup, after the package exists on the registry:
+#   npmjs.com -> the package -> Settings -> Trusted Publisher -> GitHub Actions
+#   Organization or user: aymandakirgh
+#   Repository:           pinterest-mcp
+#   Workflow filename:    release.yml
+# Until that is configured, this workflow will fail at the publish step by design.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # required for OIDC; without it npm cannot verify the run
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      # Never ship a release that cannot pass its own tests.
+      - name: Test
+        run: npm test
+
+      # Fails loudly if the tag and package.json have drifted apart.
+      - name: Check version matches the tag
+        if: github.event_name == 'release'
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$pkg" ]; then
+            echo "Tag $tag does not match package.json version $pkg" >&2
+            exit 1
+          fi
+          echo "Publishing version $pkg"
+
+      # npm generates provenance automatically under trusted publishing.
+      - name: Publish
+        run: npm publish --access public
