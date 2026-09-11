@@ -68,6 +68,21 @@ jobs:
           fi
           echo "Publishing version $pkg"
 
+      # `npm stage publish` is always permitted for a trusted publisher; direct
+      # `npm publish` is an opt-in that newer configurations do not grant, and
+      # fails with "OIDC permission denied for this action" when it is absent.
+      #
+      # Staging uploads the tarball and waits: a maintainer approves it with 2FA
+      # at npmjs.com -> Staged Packages, and only then does it go public. That
+      # keeps a compromised workflow from shipping to users on its own.
+      #
+      # To make releases fully hands-off instead, enable direct publishing on the
+      # trusted publisher and swap this for `npm publish --access public`.
+      #
       # npm generates provenance automatically under trusted publishing.
-      - name: Publish
-        run: npm publish --access public
+      - name: Stage the release for approval
+        run: npm stage publish --access public
+
+      - name: Next step
+        run: |
+          echo "::notice::Staged pinterest-mcp@$(node -p "require('./package.json').version"). Approve it at https://www.npmjs.com/settings/aymandakirgh/staged-packages to publish."
