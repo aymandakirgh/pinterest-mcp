@@ -23,12 +23,15 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
 
-      # `npm ci` runs the prepare script, which compiles to dist/.
-      - name: Install and build
+      - name: Install
         run: npm ci
 
       - name: Typecheck
         run: npm run typecheck
+
+      # The stdio tests boot dist/index.js, so this must precede them.
+      - name: Build
+        run: npm run build
 
       - name: Test
         run: npm test

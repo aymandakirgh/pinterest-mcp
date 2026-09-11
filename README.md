@@ -37,7 +37,8 @@ Or from source:
 ```bash
 git clone https://github.com/aymandakirgh/pinterest-mcp.git
 cd pinterest-mcp
-npm install     # compiles to dist/ via the prepare script
+npm install
+npm run build   # compiles to dist/
 npm test
 ```
 
