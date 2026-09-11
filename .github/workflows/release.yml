@@ -35,6 +35,14 @@ jobs:
           registry-url: https://registry.npmjs.org
           cache: npm
 
+      # Node 22 ships npm 10, which predates OIDC trusted publishing. Without
+      # this the publish fails with a bare 404 on PUT — npm's way of saying
+      # "unauthenticated" without revealing whether the package exists.
+      - name: Upgrade npm for trusted publishing
+        run: |
+          npm install -g npm@latest
+          npm --version
+
       - name: Install
         run: npm ci
 
