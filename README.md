@@ -24,7 +24,7 @@ Worth knowing before you plan a workflow around it:
 - **No public discovery search.** Everything is scoped to the authenticated account. `pinterest_search_my_pins` searches *your* pins, not Pinterest at large.
 - **Analytics reach back 90 days.** Longer windows are rejected by Pinterest, not by this server.
 - **Video pins take three steps** — register the upload, PUT the file, then create the pin referencing the media id.
-- **Trial access is limited.** A new Pinterest app can only act on its own account until it is approved for standard access.
+- **Trial access is limited.** A new Pinterest app can only act on its own account until it is approved for Standard access. Everything here works under Trial for your own account; letting *other people* connect needs Standard.
 
 ## Install
 
@@ -43,6 +43,18 @@ npm test
 ```
 
 ## Getting a token
+
+### Fastest: a test token from the dashboard
+
+Once your app is approved for Trial access, you can generate a token straight from the Pinterest dashboard and skip OAuth entirely — the quickest way to get this server working against your own account:
+
+> [developers.pinterest.com/apps](https://developers.pinterest.com/apps/) → Manage → **Configure** → Generate Access Token → pick **Production** (or Sandbox) → Generate
+
+```bash
+claude mcp add pinterest --env PINTEREST_ACCESS_TOKEN=your_token -- npx -y pinterest-mcp
+```
+
+Then ask the assistant to call `pinterest_get_user_account` to confirm the token and its scopes.
 
 ### In the browser (easiest)
 
